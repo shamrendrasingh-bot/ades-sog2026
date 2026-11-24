@@ -363,10 +363,9 @@ html[lang="ar"] .ticket small{letter-spacing:0}
 
 <script>
 /* Settings
-   submitUrl: optional HTTPS endpoint on the ADES server that receives each feedback entry as JSON (POST)
-   and forwards it to feedbackEmail. When it is set, feedback is sent silently in the background.
-   When it is empty, the visitor's own email app opens with the feedback ready to send to feedbackEmail. */
-const CONFIG = { submitUrl: "", feedbackEmail: "production@adesgroup.com", event: "SOG 2026", budget: 100 };
+   submitUrl: address on the ADES server that stores each feedback entry. The page sends it as JSON (POST).
+   Default: save-feedback.php placed in the same folder as this page. Leave empty to send nothing. */
+const CONFIG = { submitUrl: "save-feedback.php", event: "SOG 2026", budget: 100 };
 
 const OPTIONS = [
   {id:1, cost:35, x:12.8, y:42.5, val:"40%", fact:false},
@@ -597,9 +596,9 @@ async function sendFb(e){
   const hasContent=!!(name||entry.company||rating||entry.pillar||entry.comment);
   btn.disabled=true;btn.textContent=L().sending;
   let sentOk=false;
-  if(CONFIG.submitUrl&&hasContent){
+  if(CONFIG.submitUrl&&hasContent&&/^https?:/.test(location.protocol)){
     try{
-      const ctl=("AbortController" in window)?new AbortController():null; const tm=setTimeout(()=>ctl&&ctl.abort(),6000);
+      const ctl=("AbortController" in window)?new AbortController():null; const tm=setTimeout(()=>ctl&&ctl.abort(),4000);
       await fetch(CONFIG.submitUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(entry),signal:ctl?ctl.signal:undefined});
       clearTimeout(tm); sentOk=true;
     }catch(err){}
@@ -607,13 +606,6 @@ async function sendFb(e){
   btn.disabled=false;btn.innerHTML=`<span>${L().send}</span>`;
   lastName=name;$("#tyTitle").textContent=name?L().ty(name):L().tyAnon;
   show("s-ty");
-  if(!sentOk&&hasContent&&CONFIG.feedbackEmail){
-    const body=["Event: "+entry.event,"Date: "+entry.submittedAt,"Language: "+entry.language,"Name: "+(entry.name||"-"),"Company: "+(entry.company||"-"),
-      "Rating: "+(entry.rating?entry.rating+" / 5":"-"),"Pillar that matters most: "+(entry.pillar||"-"),"Choices made: "+(entry.choices.join("; ")||"-"),
-      "Credits used: "+entry.creditsUsed,"","Comment:",entry.comment||"-"].join("\n");
-    const href="mailto:"+CONFIG.feedbackEmail+"?subject="+encodeURIComponent("SOG 2026 sustainability challenge feedback"+(entry.name?" - "+entry.name:""))+"&body="+encodeURIComponent(body);
-    setTimeout(()=>{try{const a=document.createElement("a");a.href=href;a.rel="noopener";document.body.appendChild(a);a.click();a.remove();}catch(err){}},500);
-  }
 }
 $("#fbForm").addEventListener("submit",sendFb);
 $("#b-send").addEventListener("click",sendFb);
